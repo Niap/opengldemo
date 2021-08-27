@@ -1,3 +1,4 @@
+#define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -47,6 +48,8 @@ int main(void)
     /* Initialize the library */
     if (!glfwInit())
         return -1;
+
+
         
     /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
@@ -91,7 +94,8 @@ int main(void)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,6*sizeof(unsigned int),indices,GL_STATIC_DRAW);
 
     std::string vertexShader = 
-        "attribute vec4 position;\n"
+        "#version 330 core\n"
+        "layout(location=0) in vec4 position;\n"
         "\n"
         "void main()\n"
         "\n"
@@ -100,9 +104,11 @@ int main(void)
         "}\n";
 
     std::string fragmentShader = 
+        "#version 330 core\n"
+        "layout(location=0) out vec4 color;\n"
         "void main()\n"
         "{\n"
-        " gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
+        " color = vec4(1.0, 0.0, 0.0, 1.0);\n"
         "}\n";
 
 
