@@ -3,6 +3,25 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+#define ASSET(x) if(!x) __debugbreak();
+#define GLCALL(x) GlClearError(); \
+    x\
+    ASSET(GlGetError(__LINE__))
+
+static void GlClearError(){
+    while(GL_NO_ERROR != glGetError());
+}
+
+static bool GlGetError(int line){
+    while(GLenum error = glGetError()){
+        std::cout << "[OpenGl error] (" << error << " ) on line:"<< line << std::endl;
+        return false;
+    }
+    return true;
+}
+
+
+
 static unsigned int CompileShader(const unsigned int type,const std::string& source)
 {
     unsigned int id = glCreateShader(type);
@@ -124,7 +143,7 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT);
         
         //glDrawArrays(GL_TRIANGLES,0,6);
-        glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,nullptr);
+        GLCALL(glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,nullptr);)
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
