@@ -2,6 +2,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 #define ASSET(x) if(!x) __debugbreak();
 #define GLCALL(x) GlClearError(); \
@@ -68,7 +70,9 @@ int main(void)
     if (!glfwInit())
         return -1;
 
-
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
         
     /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
@@ -91,23 +95,32 @@ int main(void)
     }
 
     float positions[] = {
-        -0.5f,-0.5f,//0
-        0.5f,-0.5f,//1
-        0.5f,0.5f,//2
-        -0.5f,0.5f,//3
+        -0.5f,-0.5f,0.0f,0.0f,//0
+        0.5f,-0.5f,1.0f,0.0f,//1
+        0.5f,0.5f,1.0f,1.0f,//2
+        -0.5f,0.5f,0.0f,1.0f,//3
     };
 
     unsigned int indices[] = {
         0,1,2,2,3,0
     };
 
+   /* glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);*/
+
+    unsigned int vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
     unsigned int buffer;
     glGenBuffers(1,&buffer);
     glBindBuffer(GL_ARRAY_BUFFER,buffer);
-    glBufferData(GL_ARRAY_BUFFER,8*sizeof(float),positions,GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER,4*4*sizeof(float),positions,GL_STATIC_DRAW);
 
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,2*sizeof(float),0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     unsigned int ibo; //inde buffer object
     glGenBuffers(1,&ibo);
@@ -117,33 +130,53 @@ int main(void)
     std::string vertexShader = 
         "#version 330 core\n"
         "layout(location=0) in vec4 position;\n"
+        "layout(location=1) in vec2 texCood;\n"
+        "out vec2 v_TexCood;\n"
         "\n"
         "void main()\n"
         "\n"
         "{\n"
         " gl_Position = position;\n"
+        " v_TexCood = texCood;\n"
         "}\n";
 
     std::string fragmentShader = 
         "#version 330 core\n"
-        "layout(location=0) out vec4 color;\n"
-        "uniform vec4 u_Color;\n"
+        "out vec4 color;\n"
+        "in vec2 v_TexCood;\n"
+        "uniform sampler2D u_Texture;\n"
         "void main()\n"
         "{\n"
-        " color = u_Color;\n"
+        " vec4 texColor = texture(u_Texture,v_TexCood);\n"
+        " color = texColor;\n"
         "}\n";
 
 
     unsigned int shader = CreateShader(vertexShader,fragmentShader);
     glUseProgram(shader);
 
-    GLint uid = glGetUniformLocation(shader,"u_Color");
-    glUniform4f(uid,0.0f,1.0f,0.0f,1.0f);
-
     printf("Version: %s\n", glGetString(GL_VERSION));
 
-    float increament = 0.05;
-    float r = 0.0;
+    int width, height, bbp;
+    
+    stbi_set_flip_vertically_on_load(true); 
+    unsigned char* image_buffer = stbi_load("face.png", &width, &height, &bbp, 4);
+
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_buffer);
+    glActiveTexture(GL_TEXTURE0);
+    GLCALL(glBindTexture(GL_TEXTURE_2D, texture);)
+
+    GLint textureId = glGetUniformLocation(shader, "u_Texure");
+    GLCALL(glUniform1i(textureId,0);)
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -152,14 +185,8 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT);
         
         //glDrawArrays(GL_TRIANGLES,0,6);
-        glUniform4f(uid,r,1.0f,0.0f,1.0f);
         GLCALL(glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,nullptr);)
-        if( r>1.0f ){
-            increament = -0.05;
-        }else if(r < 0.0f){
-            increament = 0.05;
-        }
-        r += increament;
+    
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
 
