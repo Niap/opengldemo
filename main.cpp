@@ -81,6 +81,8 @@ int main(void)
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
+    glfwSwapInterval(1);
+
     GLenum err = glewInit();
     if (GLEW_OK != err)
     {
@@ -125,16 +127,23 @@ int main(void)
     std::string fragmentShader = 
         "#version 330 core\n"
         "layout(location=0) out vec4 color;\n"
+        "uniform vec4 u_Color;\n"
         "void main()\n"
         "{\n"
-        " color = vec4(1.0, 0.0, 0.0, 1.0);\n"
+        " color = u_Color;\n"
         "}\n";
 
 
     unsigned int shader = CreateShader(vertexShader,fragmentShader);
     glUseProgram(shader);
 
+    GLint uid = glGetUniformLocation(shader,"u_Color");
+    glUniform4f(uid,0.0f,1.0f,0.0f,1.0f);
+
     printf("Version: %s\n", glGetString(GL_VERSION));
+
+    float increament = 0.05;
+    float r = 0.0;
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -143,8 +152,14 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT);
         
         //glDrawArrays(GL_TRIANGLES,0,6);
+        glUniform4f(uid,r,1.0f,0.0f,1.0f);
         GLCALL(glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,nullptr);)
-
+        if( r>1.0f ){
+            increament = -0.05;
+        }else if(r < 0.0f){
+            increament = 0.05;
+        }
+        r += increament;
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
 
